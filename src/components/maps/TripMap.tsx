@@ -21,11 +21,15 @@ const defaultCenter = {
 
 interface Pin {
   id: string;
-  name: string;
-  lat: number;
-  lng: number;
-  description: string | null;
+  nickname: string;
+  latitude: number;
+  longitude: number;
+  notes: string | null;
   trip_id: string;
+  google_maps_id: string | null;
+  visited_flag: boolean;
+  category: string | null;
+  created_at: string;
 }
 
 interface TripMapProps {
@@ -42,6 +46,11 @@ export default function TripMap({ tripId, onPinAdded }: TripMapProps) {
   const [showAddPinModal, setShowAddPinModal] = useState(false);
   const [mapLoaded, setMapLoaded] = useState(false);
   const mapRef = useRef<google.maps.Map | null>(null);
+  const [placeInfo, setPlaceInfo] = useState<{
+    name: string;
+    place_id?: string;
+    address?: string;
+  } | null>(null);
 
   // Load Google Maps API with Places library
   const { isLoaded } = useJsApiLoader({
@@ -68,8 +77,8 @@ export default function TripMap({ tripId, onPinAdded }: TripMapProps) {
       // If pins exist, center map on the first pin
       if (data && data.length > 0) {
         setMapCenter({
-          lat: data[0].lat,
-          lng: data[0].lng
+          lat: data[0].latitude,
+          lng: data[0].longitude
         });
       }
     } catch (error) {
@@ -97,7 +106,7 @@ export default function TripMap({ tripId, onPinAdded }: TripMapProps) {
     }
   }, []);
 
-  const handleAddPin = async (name: string, description: string) => {
+  const handleAddPin = async (name: string, description: string, category: string = '') => {
     if (!user || !tripId || !clickedLocation) return;
 
     try {
@@ -105,10 +114,14 @@ export default function TripMap({ tripId, onPinAdded }: TripMapProps) {
         .from('pins')
         .insert({
           trip_id: tripId,
-          name,
-          description,
-          lat: clickedLocation.lat,
-          lng: clickedLocation.lng
+          nickname: name, 
+          notes: description,
+          latitude: clickedLocation.lat,
+          longitude: clickedLocation.lng,
+          google_maps_id: placeInfo?.place_id || null,
+          visited_flag: false,
+          category: category || null,
+          "order": 0
         });
 
       if (error) throw error;
@@ -119,6 +132,7 @@ export default function TripMap({ tripId, onPinAdded }: TripMapProps) {
       onPinAdded();
       // Reset state
       setClickedLocation(null);
+      setPlaceInfo(null);
       setShowAddPinModal(false);
     } catch (error) {
       console.error('Error adding pin:', error);
@@ -128,14 +142,23 @@ export default function TripMap({ tripId, onPinAdded }: TripMapProps) {
   const handleCloseModal = () => {
     setShowAddPinModal(false);
     setClickedLocation(null);
+    setPlaceInfo(null);
   };
 
-  const handlePlaceSelected = useCallback((place: { name: string; lat: number; lng: number; address?: string }) => {
+  const handlePlaceSelected = useCallback((place: { name: string; lat: number; lng: number; address?: string; place_id?: string }) => {
     // Center the map on the selected place
     setMapCenter({ lat: place.lat, lng: place.lng });
     
     // Create a clicked location that will trigger the add pin modal
     setClickedLocation({ lat: place.lat, lng: place.lng });
+    
+    // Save place info for when we create the pin
+    setPlaceInfo({
+      name: place.name,
+      place_id: place.place_id,
+      address: place.address
+    });
+    
     setShowAddPinModal(true);
     
     // If the map is loaded, also pan to the location
@@ -171,21 +194,27 @@ export default function TripMap({ tripId, onPinAdded }: TripMapProps) {
         {pins.map(pin => (
           <Marker
             key={pin.id}
-            position={{ lat: pin.lat, lng: pin.lng }}
+            position={{ lat: pin.latitude, lng: pin.longitude }}
             onClick={() => setSelectedPin(pin)}
           />
         ))}
 
         {selectedPin && (
           <InfoWindow
-            position={{ lat: selectedPin.lat, lng: selectedPin.lng }}
+            position={{ lat: selectedPin.latitude, lng: selectedPin.longitude }}
             onCloseClick={() => setSelectedPin(null)}
           >
             <div className="min-w-[200px]">
-              <h3 className="font-medium text-gray-900">{selectedPin.name}</h3>
-              {selectedPin.description && (
-                <p className="mt-1 text-sm text-gray-600">{selectedPin.description}</p>
+              <h3 className="font-medium text-gray-900">{selectedPin.nickname}</h3>
+              {selectedPin.notes && (
+                <p className="mt-1 text-sm text-gray-600">{selectedPin.notes}</p>
               )}
+              {selectedPin.category && (
+                <p className="mt-1 text-xs text-gray-500">Category: {selectedPin.category}</p>
+              )}
+              <p className="mt-1 text-xs text-gray-500">
+                {selectedPin.visited_flag ? 'Visited ✓' : 'Not visited yet'}
+              </p>
             </div>
           </InfoWindow>
         )}
@@ -196,6 +225,7 @@ export default function TripMap({ tripId, onPinAdded }: TripMapProps) {
           onAdd={handleAddPin}
           onCancel={handleCloseModal}
           location={clickedLocation}
+          suggestedName={placeInfo?.name || ''}
         />
       )}
     </div>

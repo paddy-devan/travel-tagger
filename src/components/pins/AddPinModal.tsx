@@ -1,24 +1,33 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 interface AddPinModalProps {
-  onAdd: (name: string, description: string) => void;
+  onAdd: (name: string, description: string, category: string) => void;
   onCancel: () => void;
   location: { lat: number; lng: number };
+  suggestedName?: string;
 }
 
-export default function AddPinModal({ onAdd, onCancel, location }: AddPinModalProps) {
+export default function AddPinModal({ onAdd, onCancel, location, suggestedName = '' }: AddPinModalProps) {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [category, setCategory] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Use suggestedName if provided
+  useEffect(() => {
+    if (suggestedName) {
+      setName(suggestedName);
+    }
+  }, [suggestedName]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
 
     setIsSubmitting(true);
-    onAdd(name, description);
+    onAdd(name, description, category);
   };
 
   return (
@@ -46,9 +55,31 @@ export default function AddPinModal({ onAdd, onCancel, location }: AddPinModalPr
             />
           </div>
           
+          <div className="mb-4">
+            <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-1">
+              Category (Optional)
+            </label>
+            <select
+              id="category"
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">-- Select Category --</option>
+              <option value="Attraction">Attraction</option>
+              <option value="Restaurant">Restaurant</option>
+              <option value="Hotel">Hotel</option>
+              <option value="Museum">Museum</option>
+              <option value="Park">Park</option>
+              <option value="Transportation">Transportation</option>
+              <option value="Shopping">Shopping</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          
           <div className="mb-6">
             <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
-              Description (Optional)
+              Notes (Optional)
             </label>
             <textarea
               id="description"

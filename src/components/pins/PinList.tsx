@@ -7,11 +7,14 @@ import LoadingSpinner from '@/components/ui/LoadingSpinner';
 
 interface Pin {
   id: string;
-  name: string;
-  lat: number;
-  lng: number;
-  description: string | null;
+  nickname: string;
+  latitude: number;
+  longitude: number;
+  notes: string | null;
   trip_id: string;
+  google_maps_id: string | null;
+  visited_flag: boolean;
+  category: string | null;
   created_at: string;
 }
 
@@ -97,15 +100,28 @@ export default function PinList({ tripId, refreshTrigger = 0 }: PinListProps) {
         <ul className="space-y-4">
           {pins.map((pin) => (
             <li key={pin.id} className="border rounded-md p-4 hover:bg-gray-50">
-              <h3 className="font-medium text-lg">{pin.name}</h3>
-              {pin.description && (
-                <p className="text-gray-600 mt-1">{pin.description}</p>
+              <div className="flex justify-between">
+                <h3 className="font-medium text-lg">{pin.nickname}</h3>
+                {pin.visited_flag && (
+                  <span className="text-green-600 text-sm font-medium">✓ Visited</span>
+                )}
+              </div>
+              
+              {pin.category && (
+                <div className="mt-1 text-sm text-blue-600">
+                  Category: {pin.category}
+                </div>
               )}
+              
+              {pin.notes && (
+                <p className="text-gray-600 mt-2">{pin.notes}</p>
+              )}
+              
               <div className="mt-2 text-xs text-gray-400">
                 Added on {formatDate(pin.created_at)}
               </div>
-              <div className="mt-2 text-xs text-gray-400">
-                Coordinates: {pin.lat.toFixed(6)}, {pin.lng.toFixed(6)}
+              <div className="mt-1 text-xs text-gray-400">
+                Coordinates: {pin.latitude.toFixed(6)}, {pin.longitude.toFixed(6)}
               </div>
             </li>
           ))}

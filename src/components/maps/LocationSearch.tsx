@@ -8,6 +8,7 @@ interface LocationSearchProps {
     lat: number;
     lng: number;
     address?: string;
+    place_id?: string;
   }) => void;
   isLoaded: boolean;
 }
@@ -22,7 +23,7 @@ export default function LocationSearch({ onPlaceSelected, isLoaded }: LocationSe
     
     // Initialize Google Places Autocomplete
     autocompleteRef.current = new google.maps.places.Autocomplete(inputRef.current, {
-      fields: ['geometry', 'name', 'formatted_address']
+      fields: ['geometry', 'name', 'formatted_address', 'place_id']
     });
     
     // Add event listener for place_changed
@@ -35,7 +36,8 @@ export default function LocationSearch({ onPlaceSelected, isLoaded }: LocationSe
           name: place.name || searchTerm,
           lat: location.lat(),
           lng: location.lng(),
-          address: place.formatted_address
+          address: place.formatted_address,
+          place_id: place.place_id
         });
         
         // Clear the input after selection
@@ -45,7 +47,9 @@ export default function LocationSearch({ onPlaceSelected, isLoaded }: LocationSe
     
     return () => {
       // Clean up Google Maps event listeners when component unmounts
-      google.maps.event.clearInstanceListeners(autocompleteRef.current!);
+      if (autocompleteRef.current) {
+        google.maps.event.clearInstanceListeners(autocompleteRef.current);
+      }
     };
   }, [isLoaded, onPlaceSelected, searchTerm]);
   
