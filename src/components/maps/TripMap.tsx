@@ -4,8 +4,8 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { GoogleMap, useJsApiLoader, Marker, InfoWindow } from '@react-google-maps/api';
 import { supabase } from '@/lib/supabase/client';
 import { useAuth } from '@/lib/auth/AuthContext';
-import AddPinModal from '@/components/pins/AddPinModal';
-import LocationSearch from '@/components/maps/LocationSearch';
+import { AddPinModal } from '@/components/pins';
+import { LocationSearch } from '@/components/maps';
 
 // Define map container style
 const containerStyle = {

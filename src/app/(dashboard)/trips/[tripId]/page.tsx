@@ -4,9 +4,9 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth/AuthContext';
 import { supabase } from '@/lib/supabase/client';
-import TripMap from '@/components/maps/TripMap';
-import PinList from '@/components/pins/PinList';
-import LoadingSpinner from '@/components/ui/LoadingSpinner';
+import { TripMap } from '@/components/maps';
+import { PinList } from '@/components/pins';
+import { LoadingSpinner } from '@/components/ui';
 import Link from 'next/link';
 
 interface Trip {
