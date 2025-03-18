@@ -35,9 +35,10 @@ interface Pin {
 interface TripMapProps {
   tripId: string;
   onPinAdded: () => void;
+  refreshTrigger?: number;
 }
 
-export default function TripMap({ tripId, onPinAdded }: TripMapProps) {
+export default function TripMap({ tripId, onPinAdded, refreshTrigger = 0 }: TripMapProps) {
   const { user } = useAuth();
   const [pins, setPins] = useState<Pin[]>([]);
   const [selectedPin, setSelectedPin] = useState<Pin | null>(null);
@@ -90,7 +91,7 @@ export default function TripMap({ tripId, onPinAdded }: TripMapProps) {
     if (isLoaded) {
       fetchPins();
     }
-  }, [isLoaded, fetchPins]);
+  }, [isLoaded, fetchPins, refreshTrigger]);
 
   const onMapLoad = useCallback((map: google.maps.Map) => {
     mapRef.current = map;

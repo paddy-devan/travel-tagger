@@ -63,6 +63,11 @@ export default function TripDetail() {
   const handlePinAdded = () => {
     setRefreshPins(prev => prev + 1);
   };
+  
+  const handlePinChanged = () => {
+    // Trigger a refresh of pins on both the list and map
+    setRefreshPins(prev => prev + 1);
+  };
 
   if (loading) {
     return (
@@ -123,14 +128,22 @@ export default function TripDetail() {
           {/* Map Section - Takes 60% on large screens */}
           <div className="w-full lg:w-3/5">
             <div className="bg-white p-4 rounded-lg shadow h-[600px]">
-              <TripMap tripId={trip.id.toString()} onPinAdded={handlePinAdded} />
+              <TripMap 
+                tripId={trip.id.toString()} 
+                onPinAdded={handlePinAdded} 
+                refreshTrigger={refreshPins}
+              />
             </div>
           </div>
 
           {/* Pins List Section - Takes 40% on large screens */}
           <div className="w-full lg:w-2/5">
             <div className="bg-white p-4 rounded-lg shadow h-[600px] overflow-auto">
-              <PinList tripId={trip.id.toString()} refreshTrigger={refreshPins} />
+              <PinList 
+                tripId={trip.id.toString()} 
+                refreshTrigger={refreshPins}
+                onPinChanged={handlePinChanged} 
+              />
             </div>
           </div>
         </div>

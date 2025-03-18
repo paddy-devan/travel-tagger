@@ -42,6 +42,7 @@ interface Pin {
 interface PinListProps {
   tripId: string;
   refreshTrigger?: number;
+  onPinChanged?: () => void;
 }
 
 // Sortable pin item component
@@ -124,7 +125,7 @@ function SortablePinItem({
   );
 }
 
-export default function PinList({ tripId, refreshTrigger = 0 }: PinListProps) {
+export default function PinList({ tripId, refreshTrigger = 0, onPinChanged }: PinListProps) {
   const { user } = useAuth();
   const [pins, setPins] = useState<Pin[]>([]);
   const [loading, setLoading] = useState(true);
@@ -196,6 +197,8 @@ export default function PinList({ tripId, refreshTrigger = 0 }: PinListProps) {
       
       // Refresh the pins list
       fetchPins();
+      // Notify parent component about the change
+      if (onPinChanged) onPinChanged();
       // Close the edit modal
       setEditingPin(null);
     } catch (error) {
@@ -223,6 +226,8 @@ export default function PinList({ tripId, refreshTrigger = 0 }: PinListProps) {
       
       // Refresh the pins list
       fetchPins();
+      // Notify parent component about the change
+      if (onPinChanged) onPinChanged();
     } catch (error) {
       console.error('Error deleting pin:', error);
     } finally {
@@ -272,6 +277,8 @@ export default function PinList({ tripId, refreshTrigger = 0 }: PinListProps) {
           }
 
           console.log('Successfully updated pin orders');
+          // Notify parent component about the change
+          if (onPinChanged) onPinChanged();
         } catch (error) {
           console.error('Error updating pin order:', error);
           // Log more detailed error information
