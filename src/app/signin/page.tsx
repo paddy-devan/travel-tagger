@@ -15,7 +15,7 @@ export default function SignIn() {
   const ensureUserInDatabase = async (userId: string, userEmail: string) => {
     try {
       // Check if user exists in database
-      const { data: existingUser, error: checkError } = await supabase
+      const { error: checkError } = await supabase
         .from('users')
         .select('id')
         .eq('id', userId)
@@ -69,8 +69,9 @@ export default function SignIn() {
       }
       
       router.push('/dashboard');
-    } catch (error: any) {
-      setError(error.message || 'An error occurred during sign in');
+    } catch (error: unknown) {
+      const err = error as { message?: string };
+      setError(err.message || 'An error occurred during sign in');
     } finally {
       setLoading(false);
     }
@@ -91,8 +92,9 @@ export default function SignIn() {
       if (error) throw error;
       // For Google Sign-in, the user creation in application DB
       // will need to happen after redirect when we have the user info
-    } catch (error: any) {
-      setError(error.message || 'An error occurred during Google sign in');
+    } catch (error: unknown) {
+      const err = error as { message?: string };
+      setError(err.message || 'An error occurred during Google sign in');
       setLoading(false);
     }
   };
@@ -185,7 +187,7 @@ export default function SignIn() {
 
         <div className="mt-6 text-center text-sm">
           <p className="text-gray-600">
-            Don't have an account?{' '}
+            Don&apos;t have an account?{' '}
             <Link href="/signup" className="font-medium text-blue-600 hover:text-blue-500">
               Sign up
             </Link>

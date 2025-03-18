@@ -53,7 +53,7 @@ export default function CreateTripForm({ onCancel, onSuccess }: CreateTripFormPr
       }
       
       // Create the trip
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('trips')
         .insert([
           { 
@@ -75,9 +75,10 @@ export default function CreateTripForm({ onCancel, onSuccess }: CreateTripFormPr
       setEndDate('');
       onSuccess();
       
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error creating trip:', error);
-      setError(error.message || 'Failed to create trip');
+      const err = error as { message?: string };
+      setError(err.message || 'Failed to create trip');
     } finally {
       setIsSubmitting(false);
     }

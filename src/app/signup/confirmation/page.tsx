@@ -22,7 +22,7 @@ export default function SignUpConfirmation() {
           </svg>
         </div>
         <p className="text-gray-600 mb-6">
-          We've sent a confirmation link to your email address. Please check your inbox and click the link to complete your registration.
+          We&apos;ve sent a confirmation link to your email address. Please check your inbox and click the link to complete your registration.
         </p>
         <div className="mt-6">
           <Link

@@ -64,8 +64,9 @@ export default function SignUp() {
       
       // Show success message or redirect
       router.push('/signup/confirmation');
-    } catch (error: any) {
-      setError(error.message || 'An error occurred during sign up');
+    } catch (error: unknown) {
+      const err = error as { message?: string };
+      setError(err.message || 'An error occurred during sign up');
     } finally {
       setLoading(false);
     }
@@ -87,8 +88,9 @@ export default function SignUp() {
       
       // For OAuth providers, we can't create the database user here
       // It will need to be handled after the OAuth redirect
-    } catch (error: any) {
-      setError(error.message || 'An error occurred during Google sign up');
+    } catch (error: unknown) {
+      const err = error as { message?: string };
+      setError(err.message || 'An error occurred during Google sign up');
       setLoading(false);
     }
   };

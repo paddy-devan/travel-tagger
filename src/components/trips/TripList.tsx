@@ -38,8 +38,9 @@ export default function TripList({ refreshTrigger = 0 }: TripListProps) {
       if (error) throw error;
       
       setTrips(data || []);
-    } catch (error: any) {
-      setError(error.message || 'Failed to load trips');
+    } catch (error: unknown) {
+      const err = error as { message?: string };
+      setError(err.message || 'Failed to load trips');
       console.error('Error fetching trips:', error);
     } finally {
       setLoading(false);
@@ -50,7 +51,7 @@ export default function TripList({ refreshTrigger = 0 }: TripListProps) {
     if (user) {
       fetchTrips();
     }
-  }, [user, refreshTrigger]);
+  }, [user, refreshTrigger, fetchTrips]);
 
   if (loading) {
     return (
@@ -77,7 +78,7 @@ export default function TripList({ refreshTrigger = 0 }: TripListProps) {
   if (trips.length === 0) {
     return (
       <p className="text-gray-600 py-4">
-        You don't have any trips yet. Create your first trip to get started!
+        You don&apos;t have any trips yet. Create your first trip to get started!
       </p>
     );
   }
