@@ -64,29 +64,32 @@ function SortablePinItem({
     setNodeRef,
     transform,
     transition,
+    isDragging
   } = useSortable({ id: pin.id });
 
-  // Only apply transform to the Y axis, ignoring horizontal movement
+  // Use the standard CSS.Transform utility for reliable dragging
   const style = {
-    transform: transform ? 
-      `translate3d(0px, ${transform.y}px, 0)` : 
-      undefined,
+    transform: CSS.Transform.toString(transform),
     transition,
+    zIndex: isDragging ? 999 : 'auto',
+    backgroundColor: isDragging ? '#f9fafb' : undefined,
+    boxShadow: isDragging ? '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)' : undefined,
   };
 
   return (
     <li 
       ref={setNodeRef} 
       style={style} 
-      className="border rounded-md p-4 hover:bg-gray-50"
+      className={`border rounded-md p-4 ${isDragging ? 'border-blue-300' : 'hover:bg-gray-50'}`}
     >
       <div className="flex justify-between items-start">
         <div className="flex">
           {/* Drag handle */}
           <div 
-            className="mr-2 flex items-center cursor-grab active:cursor-grabbing" 
+            className="mr-2 flex items-center justify-center w-6 h-full cursor-grab active:cursor-grabbing bg-gray-50 hover:bg-gray-100 rounded p-1" 
             {...attributes} 
             {...listeners}
+            title="Drag to reorder"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
@@ -138,12 +141,12 @@ export default function PinList({ tripId, refreshTrigger = 0, onPinChanged }: Pi
   const [isDeleting, setIsDeleting] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Set up sensors for drag and drop
+  // Set up sensors for drag and drop with minimal constraints
   const sensors = useSensors(
     useSensor(PointerSensor, {
+      // Simpler activation constraints
       activationConstraint: {
-        distance: 8, // Slightly increased distance for better vertical detection
-        tolerance: 5, // Add tolerance to make vertical-only dragging feel better
+        distance: 1, // Minimal distance to start dragging
       },
     }),
     useSensor(KeyboardSensor, {
@@ -338,7 +341,8 @@ export default function PinList({ tripId, refreshTrigger = 0, onPinChanged }: Pi
           sensors={sensors}
           collisionDetection={closestCenter}
           onDragEnd={handleDragEnd}
-          modifiers={[restrictToVerticalAxis, restrictToParentElement]}
+          // Only use restrictToVerticalAxis to keep it simple
+          modifiers={[restrictToVerticalAxis]}
         >
           <SortableContext
             items={pins.map(pin => pin.id)}
