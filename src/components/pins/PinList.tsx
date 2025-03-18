@@ -16,6 +16,7 @@ import {
   useSensors,
   DragEndEvent
 } from '@dnd-kit/core';
+import { restrictToVerticalAxis, restrictToParentElement } from '@dnd-kit/modifiers';
 import {
   arrayMove,
   SortableContext,
@@ -65,8 +66,11 @@ function SortablePinItem({
     transition,
   } = useSortable({ id: pin.id });
 
+  // Only apply transform to the Y axis, ignoring horizontal movement
   const style = {
-    transform: CSS.Transform.toString(transform),
+    transform: transform ? 
+      `translate3d(0px, ${transform.y}px, 0)` : 
+      undefined,
     transition,
   };
 
@@ -85,7 +89,7 @@ function SortablePinItem({
             {...listeners}
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
             </svg>
           </div>
           
@@ -138,7 +142,8 @@ export default function PinList({ tripId, refreshTrigger = 0, onPinChanged }: Pi
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 5, // 5px movement required before activation
+        distance: 8, // Slightly increased distance for better vertical detection
+        tolerance: 5, // Add tolerance to make vertical-only dragging feel better
       },
     }),
     useSensor(KeyboardSensor, {
@@ -321,7 +326,7 @@ export default function PinList({ tripId, refreshTrigger = 0, onPinChanged }: Pi
 
   return (
     <div>
-      <h2 className="text-xl font-semibold mb-4">Saved Locations</h2>
+      <h2 className="text-xl font-semibold mb-4">Pins</h2>
       
       {pins.length === 0 ? (
         <div className="text-center py-6 text-gray-500">
@@ -333,6 +338,7 @@ export default function PinList({ tripId, refreshTrigger = 0, onPinChanged }: Pi
           sensors={sensors}
           collisionDetection={closestCenter}
           onDragEnd={handleDragEnd}
+          modifiers={[restrictToVerticalAxis, restrictToParentElement]}
         >
           <SortableContext
             items={pins.map(pin => pin.id)}
