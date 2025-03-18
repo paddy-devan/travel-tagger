@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import { useAuth } from '@/lib/auth/AuthContext';
 import { LoadingSpinner } from '@/components/ui';
+import { EditPinModal } from '@/components/pins';
 
 interface Pin {
   id: string;
@@ -16,6 +17,7 @@ interface Pin {
   visited_flag: boolean;
   category: string | null;
   created_at: string;
+  order: number;
 }
 
 interface PinListProps {
@@ -28,6 +30,8 @@ export default function PinList({ tripId, refreshTrigger = 0 }: PinListProps) {
   const [pins, setPins] = useState<Pin[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [editingPin, setEditingPin] = useState<Pin | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const fetchPins = useCallback(async () => {
     if (!user || !tripId) return;
@@ -39,7 +43,7 @@ export default function PinList({ tripId, refreshTrigger = 0 }: PinListProps) {
         .from('pins')
         .select('*')
         .eq('trip_id', tripId)
-        .order('created_at', { ascending: false });
+        .order('order', { ascending: true });
       
       if (error) throw error;
       
@@ -57,12 +61,61 @@ export default function PinList({ tripId, refreshTrigger = 0 }: PinListProps) {
     fetchPins();
   }, [fetchPins, refreshTrigger]);
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
+  const handleEditPin = (pin: Pin) => {
+    setEditingPin(pin);
+  };
+
+  const handleSavePin = async (id: string, name: string, description: string, category: string, visited: boolean) => {
+    if (!user) return;
+    
+    try {
+      const { error } = await supabase
+        .from('pins')
+        .update({
+          nickname: name,
+          notes: description,
+          category: category || null,
+          visited_flag: visited
+        })
+        .eq('id', id)
+        .eq('trip_id', tripId);
+      
+      if (error) throw error;
+      
+      // Refresh the pins list
+      fetchPins();
+      // Close the edit modal
+      setEditingPin(null);
+    } catch (error) {
+      console.error('Error updating pin:', error);
+    }
+  };
+
+  const handleDeletePin = async (id: string) => {
+    if (!user || isDeleting) return;
+    
+    if (!confirm('Are you sure you want to delete this pin?')) {
+      return;
+    }
+    
+    try {
+      setIsDeleting(true);
+      
+      const { error } = await supabase
+        .from('pins')
+        .delete()
+        .eq('id', id)
+        .eq('trip_id', tripId);
+      
+      if (error) throw error;
+      
+      // Refresh the pins list
+      fetchPins();
+    } catch (error) {
+      console.error('Error deleting pin:', error);
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   if (loading && pins.length === 0) {
@@ -97,35 +150,54 @@ export default function PinList({ tripId, refreshTrigger = 0 }: PinListProps) {
           <p className="mt-2 text-sm">Click anywhere on the map to add a pin!</p>
         </div>
       ) : (
-        <ul className="space-y-4">
+        <ul className="space-y-2">
           {pins.map((pin) => (
-            <li key={pin.id} className="border rounded-md p-4 hover:bg-gray-50">
-              <div className="flex justify-between">
-                <h3 className="font-medium text-lg">{pin.nickname}</h3>
-                {pin.visited_flag && (
-                  <span className="text-green-600 text-sm font-medium">✓ Visited</span>
-                )}
-              </div>
-              
-              {pin.category && (
-                <div className="mt-1 text-sm text-blue-600">
-                  Category: {pin.category}
+            <li key={pin.id} className="border rounded-md p-3 hover:bg-gray-50">
+              <div className="flex justify-between items-start">
+                <div className="flex">
+                  <div className="w-6 h-6 flex items-center justify-center bg-blue-100 rounded-full mr-3 flex-shrink-0">
+                    <span className="text-sm font-medium text-blue-700">{pin.order}</span>
+                  </div>
+                  <div>
+                    <h3 className="font-medium text-gray-900">{pin.nickname}</h3>
+                    {pin.category && (
+                      <p className="text-xs text-gray-600">{pin.category}</p>
+                    )}
+                  </div>
                 </div>
-              )}
-              
-              {pin.notes && (
-                <p className="text-gray-600 mt-2">{pin.notes}</p>
-              )}
-              
-              <div className="mt-2 text-xs text-gray-400">
-                Added on {formatDate(pin.created_at)}
-              </div>
-              <div className="mt-1 text-xs text-gray-400">
-                Coordinates: {pin.latitude.toFixed(6)}, {pin.longitude.toFixed(6)}
+                <div className="flex space-x-2">
+                  <button
+                    onClick={() => handleEditPin(pin)}
+                    className="text-gray-500 hover:text-blue-600"
+                    title="Edit pin"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={() => handleDeletePin(pin.id)}
+                    className="text-gray-500 hover:text-red-600"
+                    title="Delete pin"
+                    disabled={isDeleting}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
+                </div>
               </div>
             </li>
           ))}
         </ul>
+      )}
+      
+      {editingPin && (
+        <EditPinModal
+          pin={editingPin}
+          onSave={handleSavePin}
+          onCancel={() => setEditingPin(null)}
+        />
       )}
     </div>
   );

@@ -68,7 +68,7 @@ export default function TripMap({ tripId, onPinAdded }: TripMapProps) {
         .from('pins')
         .select('*')
         .eq('trip_id', tripId)
-        .order('created_at', { ascending: true });
+        .order('order', { ascending: true });
 
       if (error) throw error;
 
@@ -110,6 +110,20 @@ export default function TripMap({ tripId, onPinAdded }: TripMapProps) {
     if (!user || !tripId || !clickedLocation) return;
 
     try {
+      // First, get the max order value from existing pins
+      const { data: maxOrderData, error: maxOrderError } = await supabase
+        .from('pins')
+        .select('order')
+        .eq('trip_id', tripId)
+        .order('order', { ascending: false })
+        .limit(1);
+
+      if (maxOrderError) throw maxOrderError;
+      
+      // Calculate next order value (1-based index)
+      const nextOrder = maxOrderData && maxOrderData.length > 0 ? 
+        (maxOrderData[0].order || 0) + 1 : 1;
+
       const { error } = await supabase
         .from('pins')
         .insert({
@@ -121,7 +135,7 @@ export default function TripMap({ tripId, onPinAdded }: TripMapProps) {
           google_maps_id: placeInfo?.place_id || null,
           visited_flag: false,
           category: category || null,
-          "order": 0
+          "order": nextOrder
         });
 
       if (error) throw error;
