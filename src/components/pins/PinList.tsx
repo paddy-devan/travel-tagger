@@ -235,41 +235,47 @@ export default function PinList({ tripId, refreshTrigger = 0 }: PinListProps) {
     const { active, over } = event;
     
     if (over && active.id !== over.id) {
-      setPins((items) => {
-        // Find the indices of the dragged item and the item it's dropped over
-        const oldIndex = items.findIndex((item) => item.id === active.id);
-        const newIndex = items.findIndex((item) => item.id === over.id);
-        
-        // Create the new array with the items moved to their new positions
-        return arrayMove(items, oldIndex, newIndex);
-      });
-
+      // Find the indices of the dragged item and the item it's dropped over
+      const oldIndex = pins.findIndex((item) => item.id === active.id);
+      const newIndex = pins.findIndex((item) => item.id === over.id);
+      
+      // Update pins state first to show immediate visual feedback
+      const updatedPinsArray = arrayMove([...pins], oldIndex, newIndex);
+      
+      // Update order values for all items
+      const reorderedPins = updatedPinsArray.map((pin, index) => ({
+        ...pin,
+        order: index + 1 // Update the order starting from 1
+      }));
+      
+      // Set the updated pins with new orders
+      setPins(reorderedPins);
+      
       // Update order values in database
       if (user) {
         try {
           setIsSaving(true);
           
-          // Create new array with updated order values (1-based)
-          const updatedPins = pins.map((pin, index) => ({
+          // Prepare the updates - we only need id, order and trip_id for the update
+          const updates = reorderedPins.map(pin => ({
             id: pin.id,
-            order: index + 1
+            order: pin.order,
+            trip_id: pin.trip_id
           }));
           
-          // Update all pins with their new order
-          for (const pin of updatedPins) {
-            const { error } = await supabase
-              .from('pins')
-              .update({ order: pin.order })
-              .eq('id', pin.id)
-              .eq('trip_id', tripId);
-            
-            if (error) throw error;
-          }
+          // Use a single upsert operation to update all pins at once
+          const { error } = await supabase
+            .from('pins')
+            .upsert(updates, { 
+              onConflict: 'id', // Update on id conflict
+              ignoreDuplicates: false // We want to update existing records
+            });
           
-          // Refresh pins list
-          fetchPins();
+          if (error) throw error;
         } catch (error) {
           console.error('Error updating pin order:', error);
+          // If there's an error, revert back to the original order
+          fetchPins();
         } finally {
           setIsSaving(false);
         }
