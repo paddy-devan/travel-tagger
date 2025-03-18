@@ -256,24 +256,31 @@ export default function PinList({ tripId, refreshTrigger = 0 }: PinListProps) {
         try {
           setIsSaving(true);
           
-          // Prepare the updates - we only need id, order and trip_id for the update
-          const updates = reorderedPins.map(pin => ({
-            id: pin.id,
-            order: pin.order,
-            trip_id: pin.trip_id
-          }));
-          
-          // Use a single upsert operation to update all pins at once
-          const { error } = await supabase
-            .from('pins')
-            .upsert(updates, { 
-              onConflict: 'id', // Update on id conflict
-              ignoreDuplicates: false // We want to update existing records
-            });
-          
-          if (error) throw error;
+          // Perform individual updates rather than bulk upsert
+          // This is more reliable for updating order values
+          for (const pin of reorderedPins) {
+            const { error } = await supabase
+              .from('pins')
+              .update({ order: pin.order })
+              .eq('id', pin.id)
+              .eq('trip_id', tripId);
+            
+            if (error) {
+              console.error('Supabase update error:', error);
+              throw error;
+            }
+          }
+
+          console.log('Successfully updated pin orders');
         } catch (error) {
           console.error('Error updating pin order:', error);
+          // Log more detailed error information
+          if (error instanceof Error) {
+            console.error('Error details:', error.message);
+          } else {
+            console.error('Unknown error type:', error);
+          }
+          
           // If there's an error, revert back to the original order
           fetchPins();
         } finally {
