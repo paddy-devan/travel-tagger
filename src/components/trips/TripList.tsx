@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import { useAuth } from '@/lib/auth/AuthContext';
 
@@ -22,7 +22,7 @@ export default function TripList({ refreshTrigger = 0 }: TripListProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchTrips = async () => {
+  const fetchTrips = useCallback(async () => {
     if (!user) return;
     
     try {
@@ -45,7 +45,7 @@ export default function TripList({ refreshTrigger = 0 }: TripListProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
 
   useEffect(() => {
     if (user) {
