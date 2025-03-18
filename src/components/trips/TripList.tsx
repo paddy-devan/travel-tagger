@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import { useAuth } from '@/lib/auth/AuthContext';
+import Link from 'next/link';
 
 interface Trip {
   id: string;
@@ -125,9 +126,12 @@ export default function TripList({ refreshTrigger = 0 }: TripListProps) {
                   {formatDate(trip.end_date)}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm">
-                  <button className="text-blue-600 hover:text-blue-800">
+                  <Link 
+                    href={`/trips/${trip.id}`}
+                    className="text-blue-600 hover:text-blue-800"
+                  >
                     View Details
-                  </button>
+                  </Link>
                 </td>
               </tr>
             ))}
