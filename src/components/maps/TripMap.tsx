@@ -93,6 +93,57 @@ export default function TripMap({ tripId, onPinAdded, refreshTrigger = 0 }: Trip
     }
   }, [isLoaded, fetchPins, refreshTrigger]);
 
+  // Function to fit map bounds to include all pins
+  const fitMapToPins = useCallback(() => {
+    if (!mapRef.current || pins.length === 0) return;
+    
+    const bounds = new google.maps.LatLngBounds();
+    
+    // Add all pin locations to the bounds
+    pins.forEach(pin => {
+      bounds.extend({ lat: pin.latitude, lng: pin.longitude });
+    });
+    
+    // Fit the map to the bounds with padding
+    mapRef.current.fitBounds(bounds, {
+      top: 50,
+      right: 50,
+      bottom: 50,
+      left: 50
+    });
+    
+    // If there's only one pin, zoom out a bit as fitBounds will zoom too close
+    if (pins.length === 1) {
+      const currentZoom = mapRef.current.getZoom();
+      if (currentZoom !== undefined && currentZoom > 15) {
+        mapRef.current.setZoom(15);
+      }
+    }
+  }, [pins]);
+
+  // Automatically fit bounds when pins are loaded or changed
+  useEffect(() => {
+    if (mapLoaded && pins.length > 0) {
+      fitMapToPins();
+    }
+  }, [mapLoaded, pins.length, fitMapToPins]);
+
+  // Add keyboard shortcut for fitting map to pins (Ctrl+F or Cmd+F)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Check if Ctrl+F or Cmd+F is pressed and map is loaded
+      if ((e.ctrlKey || e.metaKey) && e.key === 'f' && mapLoaded && pins.length > 0) {
+        e.preventDefault(); // Prevent browser's find functionality
+        fitMapToPins();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [fitMapToPins, mapLoaded, pins.length]);
+
   const onMapLoad = useCallback((map: google.maps.Map) => {
     mapRef.current = map;
     setMapLoaded(true);
@@ -189,8 +240,22 @@ export default function TripMap({ tripId, onPinAdded, refreshTrigger = 0 }: Trip
 
   return (
     <div className="h-full flex flex-col">
-      <div className="mb-3">
+      <div className="mb-3 flex justify-between items-center">
         <LocationSearch onPlaceSelected={handlePlaceSelected} isLoaded={isLoaded} />
+        
+        {pins.length > 0 && (
+          <button 
+            onClick={fitMapToPins}
+            className="ml-2 px-3 py-2 text-sm bg-white border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 flex items-center"
+            title="Fit map to show all pins (Ctrl+F)"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5v-4m0 4h-4m4 0l-5-5" />
+            </svg>
+            <span>Fit All Pins</span>
+            <span className="ml-1 text-xs text-gray-500">(Ctrl+F)</span>
+          </button>
+        )}
       </div>
       
       <GoogleMap
