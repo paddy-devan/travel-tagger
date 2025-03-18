@@ -6,6 +6,25 @@ import { useAuth } from '@/lib/auth/AuthContext';
 import { LoadingSpinner } from '@/components/ui';
 import { EditPinModal } from '@/components/pins';
 
+// Import dnd-kit components
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+
 interface Pin {
   id: string;
   nickname: string;
@@ -25,6 +44,86 @@ interface PinListProps {
   refreshTrigger?: number;
 }
 
+// Sortable pin item component
+function SortablePinItem({ 
+  pin, 
+  onEdit, 
+  onDelete, 
+  isDeleting 
+}: { 
+  pin: Pin; 
+  onEdit: (pin: Pin) => void;
+  onDelete: (id: string) => void;
+  isDeleting: boolean;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+  } = useSortable({ id: pin.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <li 
+      ref={setNodeRef} 
+      style={style} 
+      className="border rounded-md p-4 hover:bg-gray-50"
+    >
+      <div className="flex justify-between items-start">
+        <div className="flex">
+          {/* Drag handle */}
+          <div 
+            className="mr-2 flex items-center cursor-grab active:cursor-grabbing" 
+            {...attributes} 
+            {...listeners}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
+            </svg>
+          </div>
+          
+          <div className="w-8 h-8 flex items-center justify-center bg-blue-100 rounded-full mr-3 flex-shrink-0">
+            <span className="text-sm font-medium text-blue-700">{pin.order}</span>
+          </div>
+          <div>
+            <h3 className="font-medium text-gray-900">{pin.nickname}</h3>
+            {pin.category && (
+              <p className="text-xs text-gray-600">{pin.category}</p>
+            )}
+          </div>
+        </div>
+        <div className="flex space-x-3">
+          <button
+            onClick={() => onEdit(pin)}
+            className="text-gray-500 hover:text-blue-600 p-1 rounded border border-gray-200 hover:border-blue-300 hover:bg-blue-50"
+            title="Edit pin"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+            </svg>
+          </button>
+          <button
+            onClick={() => onDelete(pin.id)}
+            className="text-gray-500 hover:text-red-600 p-1 rounded border border-gray-200 hover:border-red-300 hover:bg-red-50"
+            title="Delete pin"
+            disabled={isDeleting}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </li>
+  );
+}
+
 export default function PinList({ tripId, refreshTrigger = 0 }: PinListProps) {
   const { user } = useAuth();
   const [pins, setPins] = useState<Pin[]>([]);
@@ -32,6 +131,19 @@ export default function PinList({ tripId, refreshTrigger = 0 }: PinListProps) {
   const [error, setError] = useState<string | null>(null);
   const [editingPin, setEditingPin] = useState<Pin | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Set up sensors for drag and drop
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 5, // 5px movement required before activation
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   const fetchPins = useCallback(async () => {
     if (!user || !tripId) return;
@@ -118,6 +230,53 @@ export default function PinList({ tripId, refreshTrigger = 0 }: PinListProps) {
     }
   };
 
+  // Handle the drag end event
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    
+    if (over && active.id !== over.id) {
+      setPins((items) => {
+        // Find the indices of the dragged item and the item it's dropped over
+        const oldIndex = items.findIndex((item) => item.id === active.id);
+        const newIndex = items.findIndex((item) => item.id === over.id);
+        
+        // Create the new array with the items moved to their new positions
+        return arrayMove(items, oldIndex, newIndex);
+      });
+
+      // Update order values in database
+      if (user) {
+        try {
+          setIsSaving(true);
+          
+          // Create new array with updated order values (1-based)
+          const updatedPins = pins.map((pin, index) => ({
+            id: pin.id,
+            order: index + 1
+          }));
+          
+          // Update all pins with their new order
+          for (const pin of updatedPins) {
+            const { error } = await supabase
+              .from('pins')
+              .update({ order: pin.order })
+              .eq('id', pin.id)
+              .eq('trip_id', tripId);
+            
+            if (error) throw error;
+          }
+          
+          // Refresh pins list
+          fetchPins();
+        } catch (error) {
+          console.error('Error updating pin order:', error);
+        } finally {
+          setIsSaving(false);
+        }
+      }
+    }
+  };
+
   if (loading && pins.length === 0) {
     return (
       <div className="flex justify-center py-8">
@@ -150,46 +309,35 @@ export default function PinList({ tripId, refreshTrigger = 0 }: PinListProps) {
           <p className="mt-2 text-sm">Click anywhere on the map to add a pin!</p>
         </div>
       ) : (
-        <ul className="space-y-3">
-          {pins.map((pin) => (
-            <li key={pin.id} className="border rounded-md p-4 hover:bg-gray-50">
-              <div className="flex justify-between items-start">
-                <div className="flex">
-                  <div className="w-8 h-8 flex items-center justify-center bg-blue-100 rounded-full mr-3 flex-shrink-0">
-                    <span className="text-sm font-medium text-blue-700">{pin.order}</span>
-                  </div>
-                  <div>
-                    <h3 className="font-medium text-gray-900">{pin.nickname}</h3>
-                    {pin.category && (
-                      <p className="text-xs text-gray-600">{pin.category}</p>
-                    )}
-                  </div>
-                </div>
-                <div className="flex space-x-3">
-                  <button
-                    onClick={() => handleEditPin(pin)}
-                    className="text-gray-500 hover:text-blue-600 p-1 rounded border border-gray-200 hover:border-blue-300 hover:bg-blue-50"
-                    title="Edit pin"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                    </svg>
-                  </button>
-                  <button
-                    onClick={() => handleDeletePin(pin.id)}
-                    className="text-gray-500 hover:text-red-600 p-1 rounded border border-gray-200 hover:border-red-300 hover:bg-red-50"
-                    title="Delete pin"
-                    disabled={isDeleting}
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                  </button>
-                </div>
-              </div>
-            </li>
-          ))}
-        </ul>
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
+        >
+          <SortableContext
+            items={pins.map(pin => pin.id)}
+            strategy={verticalListSortingStrategy}
+          >
+            <ul className="space-y-3">
+              {pins.map((pin) => (
+                <SortablePinItem
+                  key={pin.id}
+                  pin={pin}
+                  onEdit={handleEditPin}
+                  onDelete={handleDeletePin}
+                  isDeleting={isDeleting}
+                />
+              ))}
+            </ul>
+          </SortableContext>
+
+          {isSaving && (
+            <div className="mt-3 text-sm text-blue-600 flex items-center">
+              <LoadingSpinner size="small" />
+              <span className="ml-2">Saving order...</span>
+            </div>
+          )}
+        </DndContext>
       )}
       
       {editingPin && (
