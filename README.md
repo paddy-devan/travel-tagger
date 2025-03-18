@@ -1,21 +1,22 @@
-# Trip Tagger
+# Travel Tagger
 
-Trip Tagger is a web application designed to organize and record trips by placing location-based "pins" on an interactive map. Its primary use case is to help users plan upcoming holidays or travels by mapping ideas for places to visit. A secondary use case is to log and visualize past trips.
+Travel Tagger is a web application designed to organize and record trips by placing location-based "pins" on an interactive map. Its primary use case is to help users plan upcoming holidays or travels by mapping ideas for places to visit. A secondary use case is to log and visualize past trips.
 
-## Features
+## Target Featureset
 
-- **Google Account Login:** Users authenticate using their Google account via OAuth
-- **Trip Management:** Create, view, and delete trips
-- **Map-Based Pin Placement:** Add pins by searching or clicking on the map
-- **Pin Organization:** Reorder pins, add attributes like visit dates, categories, and notes
-- **Multiple View Modes:** Map view and list view for different ways to manage your pins
+- **Trip Management:** Create, view, and delete trips. Share trip with other users for collaboration.
+- **Map-Based Pin Placement:** Add pins within trips by searching or clicking on the map.
+- **Pin Organization:** Organise pins by reordering, nesting, and tagging with different attributes.
+- **Multiple View Modes:** Map view and list view for different ways to manage your pins, with visualisations customised by pin attributes.
+- **Trip Reporting:** Use metadata and pin data from trips to create visually pleasing trip reports, presenting locations in formats such as a map and timeline.
+
 
 ## Tech Stack
 
 - **Frontend:** Next.js, React, TypeScript, Tailwind CSS
-- **Authentication:** NextAuth.js with Google OAuth
-- **Database:** Supabase
-- **Maps:** Google Maps API
+- **Authentication:** Supabase Auth with Google OAuth
+- **Database:** Supabase PostgreSQL
+- **Maps:** Google Maps API, Places API
 
 ## Prerequisites
 
@@ -62,40 +63,13 @@ npm run dev
 
 Navigate to [http://localhost:3000](http://localhost:3000) to see the application.
 
-## Database Schema
+## Current Progress
 
-### Users Table
-- `id`: Primary key
-- `email`: User's email (unique)
-- `name`: Display name
-- `avatar_url`: URL to user's profile image
+- Sign up and login with local application account or Google OAuth
+- Dashboard (trips) page, where users can add new trips to their account with an optional start and end date
 
-### Trips Table
-- `id`: Primary key
-- `user_id`: Foreign key linking to Users
-- `name`: Name of the trip
-- `start_date`: Optional start date
-- `end_date`: Optional end date
-- `created_at`: Timestamp
-- `updated_at`: Timestamp
+## Next 3 features
 
-### Pins Table
-- `id`: Primary key
-- `trip_id`: Foreign key linking to Trips
-- `latitude`: Coordinate
-- `longitude`: Coordinate
-- `google_maps_id`: Optional ID for place lookup
-- `nickname`: Custom name for the pin
-- `visited_flag`: Boolean marker
-- `category`: Optional location category
-- `start_date`: Optional scheduling date
-- `end_date`: Optional scheduling date
-- `notes`: Free-text field
-- `parent_pin_id`: Optional for hierarchical nesting
-- `order`: For sequence ordering
-- `created_at`: Timestamp
-- `updated_at`: Timestamp
-
-## License
-
-This project is licensed under the MIT License.
+1. Add pins to trip
+2. Google Maps visual interface for viewing pins on map
+3. Front-end design review
