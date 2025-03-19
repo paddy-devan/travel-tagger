@@ -12,6 +12,7 @@ import {
   closestCenter,
   KeyboardSensor,
   PointerSensor,
+  TouchSensor,
   useSensor,
   useSensors,
   DragEndEvent
@@ -44,6 +45,9 @@ interface PinListProps {
   tripId: string;
   refreshTrigger?: number;
   onPinChanged?: () => void;
+  tripName?: string;
+  tripStartDate?: string | null;
+  tripEndDate?: string | null;
 }
 
 // Sortable pin item component
@@ -80,18 +84,19 @@ function SortablePinItem({
     <li 
       ref={setNodeRef} 
       style={style} 
-      className={`border rounded-md p-4 ${isDragging ? 'border-blue-300' : 'hover:bg-gray-50'}`}
+      className={`border rounded-md p-4 ${isDragging ? 'border-blue-300' : 'hover:bg-gray-50'} select-none touch-manipulation`}
     >
       <div className="flex justify-between items-start">
         <div className="flex">
-          {/* Drag handle */}
+          {/* Drag handle - Critical: Added touch-action: none inline style */}
           <div 
-            className="mr-2 flex items-center justify-center w-6 h-full cursor-grab active:cursor-grabbing bg-gray-50 hover:bg-gray-100 rounded p-1" 
+            style={{ touchAction: 'none' }}
+            className="mr-2 flex items-center justify-center w-10 h-full cursor-grab active:cursor-grabbing bg-gray-50 hover:bg-gray-100 rounded p-1.5 touch-manipulation drag-handle" 
             {...attributes} 
             {...listeners}
             title="Drag to reorder"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
             </svg>
           </div>
@@ -109,7 +114,7 @@ function SortablePinItem({
         <div className="flex space-x-3">
           <button
             onClick={() => onEdit(pin)}
-            className="text-gray-500 hover:text-blue-600 p-1 rounded border border-gray-200 hover:border-blue-300 hover:bg-blue-50"
+            className="text-gray-500 hover:text-blue-600 p-1.5 rounded border border-gray-200 hover:border-blue-300 hover:bg-blue-50 touch-manipulation"
             title="Edit pin"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -118,7 +123,7 @@ function SortablePinItem({
           </button>
           <button
             onClick={() => onDelete(pin.id)}
-            className="text-gray-500 hover:text-red-600 p-1 rounded border border-gray-200 hover:border-red-300 hover:bg-red-50"
+            className="text-gray-500 hover:text-red-600 p-1.5 rounded border border-gray-200 hover:border-red-300 hover:bg-red-50 touch-manipulation"
             title="Delete pin"
             disabled={isDeleting}
           >
@@ -132,7 +137,14 @@ function SortablePinItem({
   );
 }
 
-export default function PinList({ tripId, refreshTrigger = 0, onPinChanged }: PinListProps) {
+export default function PinList({ 
+  tripId, 
+  refreshTrigger = 0, 
+  onPinChanged,
+  tripName,
+  tripStartDate,
+  tripEndDate
+}: PinListProps) {
   const { user } = useAuth();
   const [pins, setPins] = useState<Pin[]>([]);
   const [loading, setLoading] = useState(true);
@@ -140,15 +152,39 @@ export default function PinList({ tripId, refreshTrigger = 0, onPinChanged }: Pi
   const [editingPin, setEditingPin] = useState<Pin | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
-  // Set up sensors for drag and drop with minimal constraints
+  // Check if device is mobile/touch device
+  useEffect(() => {
+    const checkMobile = () => {
+      const isTouchDevice = 'ontouchstart' in window || 
+                            navigator.maxTouchPoints > 0 ||
+                            (navigator as any).msMaxTouchPoints > 0;
+      setIsMobile(isTouchDevice);
+    };
+
+    checkMobile();
+  }, []);
+
+  // Set up different sensors based on device type
   const sensors = useSensors(
-    useSensor(PointerSensor, {
-      // Simpler activation constraints
-      activationConstraint: {
-        distance: 1, // Minimal distance to start dragging
-      },
-    }),
+    // For mobile devices, use only TouchSensor
+    ...(isMobile ? [
+      useSensor(TouchSensor, {
+        activationConstraint: {
+          delay: 200,       // ms - slightly reduced from 250 for responsiveness
+          tolerance: 8,     // px - increased from 5 for better tolerance
+        },
+      }),
+    ] : [
+      // For desktop devices, use PointerSensor
+      useSensor(PointerSensor, {
+        activationConstraint: {
+          distance: 8,      // px - threshold to start dragging
+        },
+      }),
+    ]),
+    // Always include keyboard for accessibility
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     })
@@ -329,10 +365,21 @@ export default function PinList({ tripId, refreshTrigger = 0, onPinChanged }: Pi
 
   return (
     <div>
-      <h2 className="text-xl font-semibold mb-4">Pins</h2>
+      {tripName ? (
+        <div className="mb-4">
+          <h2 className="text-xl font-semibold text-gray-800">{tripName}</h2>
+          {tripStartDate && tripEndDate && (
+            <p className="text-sm text-gray-600">
+              {new Date(tripStartDate).toLocaleDateString()} - {new Date(tripEndDate).toLocaleDateString()}
+            </p>
+          )}
+        </div>
+      ) : (
+        <h2 className="text-xl font-semibold mb-4 text-gray-800">Pins</h2>
+      )}
       
       {pins.length === 0 ? (
-        <div className="text-center py-6 text-gray-500">
+        <div className="text-center py-6 text-gray-600">
           <p>No pins added yet.</p>
           <p className="mt-2 text-sm">Click anywhere on the map to add a pin!</p>
         </div>
@@ -341,8 +388,7 @@ export default function PinList({ tripId, refreshTrigger = 0, onPinChanged }: Pi
           sensors={sensors}
           collisionDetection={closestCenter}
           onDragEnd={handleDragEnd}
-          // Only use restrictToVerticalAxis to keep it simple
-          modifiers={[restrictToVerticalAxis]}
+          modifiers={[restrictToVerticalAxis, restrictToParentElement]}
         >
           <SortableContext
             items={pins.map(pin => pin.id)}

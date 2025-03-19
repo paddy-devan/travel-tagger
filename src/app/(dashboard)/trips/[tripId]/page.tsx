@@ -18,13 +18,16 @@ interface Trip {
 }
 
 export default function TripDetail() {
-  const { tripId } = useParams();
+  const params = useParams();
+  const tripId = typeof params?.tripId === 'string' ? params.tripId : '';
   const router = useRouter();
   const { user } = useAuth();
   const [trip, setTrip] = useState<Trip | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshPins, setRefreshPins] = useState(0);
+  const [isPinsCollapsed, setIsPinsCollapsed] = useState(false);
+  const [pinsCount, setPinsCount] = useState(0);
 
   useEffect(() => {
     const fetchTripDetails = async () => {
@@ -48,6 +51,17 @@ export default function TripDetail() {
         }
 
         setTrip(data);
+        
+        // Fetch pin count
+        const { count, error: countError } = await supabase
+          .from('pins')
+          .select('*', { count: 'exact', head: true })
+          .eq('trip_id', tripId);
+          
+        if (!countError && count !== null) {
+          setPinsCount(count);
+        }
+        
       } catch (error: unknown) {
         const err = error as { message?: string };
         setError(err.message || 'Failed to load trip details');
@@ -58,7 +72,7 @@ export default function TripDetail() {
     };
 
     fetchTripDetails();
-  }, [tripId, user]);
+  }, [tripId, user, refreshPins]);
 
   const handlePinAdded = () => {
     setRefreshPins(prev => prev + 1);
@@ -98,56 +112,109 @@ export default function TripDetail() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow">
-        <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
+    <div className="relative w-screen h-screen overflow-hidden">
+      {/* --- MAP LAYER (z-0) --- */}
+      <div className="absolute inset-0 z-0">
+        <TripMap 
+          tripId={trip.id.toString()} 
+          onPinAdded={handlePinAdded} 
+          refreshTrigger={refreshPins}
+        />
+      </div>
+
+      {/* --- HEADER (z-10) --- */}
+      <header className="absolute top-4 left-4 right-4 h-14 bg-white shadow-md z-10 flex items-center px-4 rounded-lg border border-gray-200">
+        <div className="flex-1 flex items-center space-x-4">
+          {/* "Back" link on the left */}
+          <Link
+            href="/dashboard"
+            className="text-blue-600 hover:text-blue-800 flex items-center flex-shrink-0"
+            title="Back to Trips"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            <span className="ml-1 md:inline hidden">Back to Trips</span>
+          </Link>
+          
+          {/* Left-aligned logo */}
           <div className="flex items-center">
-            <Link
-              href="/dashboard"
-              className="mr-3 text-blue-600 hover:text-blue-800 flex items-center"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-              </svg>
-              Back to Trips
-            </Link>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">{trip.name}</h1>
-              {trip.start_date && trip.end_date && (
-                <p className="text-sm text-gray-500">
-                  {new Date(trip.start_date).toLocaleDateString()} - {new Date(trip.end_date).toLocaleDateString()}
-                </p>
-              )}
-            </div>
+            <img 
+              src="/images/Logo.svg" 
+              alt="Travel Tagger" 
+              className="h-8"
+              style={{ marginTop: "7px" }} 
+            />
           </div>
         </div>
+        
+        {/* Logged-in user info on the right */}
+        <div className="text-gray-600">{user?.email}</div>
       </header>
 
-      <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-        <div className="flex flex-col lg:flex-row gap-6">
-          {/* Map Section - Takes 60% on large screens */}
-          <div className="w-full lg:w-3/5">
-            <div className="bg-white p-4 rounded-lg shadow h-[600px]">
-              <TripMap 
-                tripId={trip.id.toString()} 
-                onPinAdded={handlePinAdded} 
-                refreshTrigger={refreshPins}
-              />
-            </div>
-          </div>
+      {/* --- PIN LIST SIDEBAR/BOTTOM BAR (z-10) --- */}
+      <aside className={`
+        absolute 
+        md:top-22 
+        md:right-4 
+        md:w-[30%] 
+        md:h-[calc(100%-6.5rem)] 
+        
+        /* Mobile bottom bar styles */
+        bottom-4 
+        left-4 
+        right-4 
+        transition-transform duration-300 ease-in-out
+        ${isPinsCollapsed ? 'translate-y-[calc(100%-42px)]' : ''}
+        h-[35vh] 
+        md:bottom-auto 
+        md:left-auto
+        md:transform-none
 
-          {/* Pins List Section - Takes 40% on large screens */}
-          <div className="w-full lg:w-2/5">
-            <div className="bg-white p-4 rounded-lg shadow h-[600px] overflow-auto">
-              <PinList 
-                tripId={trip.id.toString()} 
-                refreshTrigger={refreshPins}
-                onPinChanged={handlePinChanged} 
-              />
-            </div>
-          </div>
+        bg-white shadow-lg z-10 overflow-visible rounded-lg border border-gray-200
+      `}>
+        {/* Mobile toggle handle - visible only on mobile */}
+        <div className="md:hidden absolute left-1/2 transform -translate-x-1/2 -top-6 z-20">
+          <button 
+            className="h-8 w-20 flex items-center justify-center bg-white rounded-t-lg border border-gray-200 border-b-0 shadow-sm"
+            onClick={() => setIsPinsCollapsed(!isPinsCollapsed)}
+            aria-label={isPinsCollapsed ? "Expand pins panel" : "Collapse pins panel"}
+          >
+            <svg 
+              xmlns="http://www.w3.org/2000/svg" 
+              className={`h-5 w-5 text-gray-600 transition-transform duration-300 ${isPinsCollapsed ? 'rotate-180' : ''}`} 
+              fill="none" 
+              viewBox="0 0 24 24" 
+              stroke="currentColor"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
         </div>
-      </main>
+        
+        {/* Collapsed header bar shown only when collapsed and on mobile */}
+        {isPinsCollapsed && (
+          <div className="md:hidden px-4 py-2 border-b border-gray-200 flex items-center">
+            <h3 className="text-sm font-medium text-gray-700 truncate">
+              {trip.name}
+            </h3>
+            <span className="ml-2 text-xs text-gray-500">
+              • {pinsCount} pins
+            </span>
+          </div>
+        )}
+        
+        <div className="p-4 h-full overflow-auto">
+          <PinList 
+            tripId={trip.id.toString()} 
+            refreshTrigger={refreshPins}
+            onPinChanged={handlePinChanged}
+            tripName={trip.name}
+            tripStartDate={trip.start_date}
+            tripEndDate={trip.end_date}
+          />
+        </div>
+      </aside>
     </div>
   );
 } 
