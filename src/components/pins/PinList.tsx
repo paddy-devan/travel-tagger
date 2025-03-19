@@ -157,37 +157,38 @@ export default function PinList({
   // Check if device is mobile/touch device
   useEffect(() => {
     const checkMobile = () => {
+      const navigatorWithTouchPoints = navigator as Navigator & { msMaxTouchPoints?: number };
       const isTouchDevice = 'ontouchstart' in window || 
                             navigator.maxTouchPoints > 0 ||
-                            (navigator as any).msMaxTouchPoints > 0;
+                            (navigatorWithTouchPoints.msMaxTouchPoints ?? 0) > 0;
       setIsMobile(isTouchDevice);
     };
 
     checkMobile();
   }, []);
 
-  // Set up different sensors based on device type
+  // Set up sensors - moved all useSensor calls outside conditionals to comply with React Hook rules
+  const touchSensor = useSensor(TouchSensor, {
+    activationConstraint: {
+      delay: 200,       // ms - slightly reduced from 250 for responsiveness
+      tolerance: 8,     // px - increased from 5 for better tolerance
+    },
+  });
+  
+  const pointerSensor = useSensor(PointerSensor, {
+    activationConstraint: {
+      distance: 8,      // px - threshold to start dragging
+    },
+  });
+  
+  const keyboardSensor = useSensor(KeyboardSensor, {
+    coordinateGetter: sortableKeyboardCoordinates,
+  });
+  
+  // Use appropriate sensors based on device type, but initialize all sensors first
   const sensors = useSensors(
-    // For mobile devices, use only TouchSensor
-    ...(isMobile ? [
-      useSensor(TouchSensor, {
-        activationConstraint: {
-          delay: 200,       // ms - slightly reduced from 250 for responsiveness
-          tolerance: 8,     // px - increased from 5 for better tolerance
-        },
-      }),
-    ] : [
-      // For desktop devices, use PointerSensor
-      useSensor(PointerSensor, {
-        activationConstraint: {
-          distance: 8,      // px - threshold to start dragging
-        },
-      }),
-    ]),
-    // Always include keyboard for accessibility
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
+    ...(isMobile ? [touchSensor] : [pointerSensor]),
+    keyboardSensor
   );
 
   const fetchPins = useCallback(async () => {

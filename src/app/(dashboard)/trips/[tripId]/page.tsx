@@ -1,13 +1,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { useAuth } from '@/lib/auth/AuthContext';
 import { supabase } from '@/lib/supabase/client';
 import { TripMap } from '@/components/maps';
 import { PinList } from '@/components/pins';
 import { LoadingSpinner } from '@/components/ui';
 import Link from 'next/link';
+import Image from 'next/image';
 
 interface Trip {
   id: string;
@@ -20,7 +21,6 @@ interface Trip {
 export default function TripDetail() {
   const params = useParams();
   const tripId = typeof params?.tripId === 'string' ? params.tripId : '';
-  const router = useRouter();
   const { user } = useAuth();
   const [trip, setTrip] = useState<Trip | null>(null);
   const [loading, setLoading] = useState(true);
@@ -105,7 +105,7 @@ export default function TripDetail() {
     return (
       <div className="min-h-screen p-8">
         <div className="p-4 bg-yellow-50 text-yellow-700 rounded-md">
-          Trip not found or you don't have access to this trip.
+          Trip not found or you don&apos;t have access to this trip.
         </div>
       </div>
     );
@@ -139,11 +139,12 @@ export default function TripDetail() {
           
           {/* Left-aligned logo */}
           <div className="flex items-center">
-            <img 
+            <Image 
               src="/images/Logo.svg" 
               alt="Travel Tagger" 
-              className="h-8"
-              style={{ marginTop: "7px" }} 
+              width={100}
+              height={32}
+              style={{ marginTop: "-2px" }} 
             />
           </div>
         </div>

@@ -46,22 +46,7 @@ const createMarkerSVG = (color: string) => {
   };
 };
 
-// Define category to color mapping
-const categoryIcons: Record<string, string> = {
-  'Museum': '#4285F4',        // Blue
-  'Attraction': '#EA4335',    // Red
-  'Hotel': '#9C27B0',         // Purple
-  'Food': '#FF9800',          // Orange
-  'Bar': '#FBBC05',           // Yellow
-  'Park': '#34A853',          // Green
-  'Transportation': '#E91E63', // Pink
-  'Shopping': '#00B0FF',      // Light blue
-  'Entertainment': '#FFEB3B', // Yellow
-  // Default color for unknown categories
-  'default': '#757575'        // Gray
-};
-
-// Companion color map for styling text and backgrounds - using the same colors
+// Companion color map for styling text and backgrounds
 const categoryColors: Record<string, string> = {
   'Museum': '#4285F4',        // Blue
   'Attraction': '#EA4335',    // Red
