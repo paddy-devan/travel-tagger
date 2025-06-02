@@ -107,13 +107,13 @@ export default function BulkEditPinsModal({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-6xl w-full max-h-[90vh] overflow-hidden">
+      <div className="bg-white rounded-lg shadow-xl max-w-6xl w-full max-h-[90vh] overflow-hidden text-gray-900">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <h2 className="text-xl font-semibold text-gray-900">Bulk Edit Pins</h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600"
+            className="text-gray-600 hover:text-gray-800"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -124,7 +124,7 @@ export default function BulkEditPinsModal({
         {/* Content */}
         <div className="p-6 overflow-auto max-h-[calc(90vh-180px)]">
           {error && (
-            <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-md text-red-700 text-sm">
+            <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-md text-red-800 text-sm">
               {error}
             </div>
           )}
@@ -134,7 +134,7 @@ export default function BulkEditPinsModal({
               <LoadingSpinner />
             </div>
           ) : pins.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
+            <div className="text-center py-8 text-gray-600">
               No pins found for this trip.
             </div>
           ) : (
@@ -142,19 +142,19 @@ export default function BulkEditPinsModal({
               <table className="min-w-full border border-gray-200 rounded-lg">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-700 uppercase">
                       #
                     </th>
-                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-700 uppercase">
                       Name
                     </th>
-                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-700 uppercase">
                       Category
                     </th>
-                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-700 uppercase">
                       Notes
                     </th>
-                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-700 uppercase">
                       Visited
                     </th>
                   </tr>
@@ -162,7 +162,7 @@ export default function BulkEditPinsModal({
                 <tbody className="bg-white divide-y divide-gray-200">
                   {pins.map((pin, index) => (
                     <tr key={pin.id} className="hover:bg-gray-50">
-                      <td className="px-3 py-2 text-sm text-gray-500">
+                      <td className="px-3 py-2 text-sm text-gray-600">
                         {pin.order + 1}
                       </td>
                       <td className="px-3 py-2">
@@ -170,7 +170,7 @@ export default function BulkEditPinsModal({
                           type="text"
                           value={pin.nickname}
                           onChange={(e) => updatePin(index, 'nickname', e.target.value)}
-                          className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          className="w-full px-2 py-1 text-sm text-gray-900 bg-white border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                         />
                       </td>
                       <td className="px-3 py-2">
@@ -178,7 +178,7 @@ export default function BulkEditPinsModal({
                           type="text"
                           value={pin.category || ''}
                           onChange={(e) => updatePin(index, 'category', e.target.value || null)}
-                          className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          className="w-full px-2 py-1 text-sm text-gray-900 bg-white border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                           placeholder="Restaurant, Hotel..."
                         />
                       </td>
@@ -186,7 +186,7 @@ export default function BulkEditPinsModal({
                         <textarea
                           value={pin.notes || ''}
                           onChange={(e) => updatePin(index, 'notes', e.target.value || null)}
-                          className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none"
+                          className="w-full px-2 py-1 text-sm text-gray-900 bg-white border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 resize-none"
                           rows={2}
                           placeholder="Add notes..."
                         />
