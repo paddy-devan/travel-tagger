@@ -6,6 +6,7 @@ import { useAuth } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
 import PinList from '@/components/PinList';
 import LoadingSpinner from '@/components/LoadingSpinner';
+import BulkEditPinsModal from '@/components/BulkEditPinsModal';
 
 interface Trip {
   id: string;
@@ -23,6 +24,7 @@ export default function TripDetailPageContent() {
   const [trip, setTrip] = useState<Trip | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showBulkEdit, setShowBulkEdit] = useState(false);
 
   useEffect(() => {
     const fetchTripDetails = async () => {
@@ -86,11 +88,34 @@ export default function TripDetailPageContent() {
   }
 
   return (
-    <PinList 
-      tripId={trip.id.toString()} 
-      tripName={trip.name}
-      tripStartDate={trip.start_date}
-      tripEndDate={trip.end_date}
-    />
+    <>
+      <PinList 
+        tripId={trip.id.toString()} 
+        tripName={trip.name}
+        tripStartDate={trip.start_date}
+        tripEndDate={trip.end_date}
+      />
+      
+      {/* Floating test button for bulk edit - positioned in bottom right */}
+      <button
+        onClick={() => setShowBulkEdit(true)}
+        className="fixed bottom-6 right-6 bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-full shadow-lg text-sm font-medium z-40 transition-colors"
+        title="Test Bulk Edit (Development)"
+      >
+        📝 Bulk Edit
+      </button>
+
+      {/* Bulk Edit Modal */}
+      <BulkEditPinsModal
+        isOpen={showBulkEdit}
+        onClose={() => setShowBulkEdit(false)}
+        tripId={tripId}
+        onSave={() => {
+          console.log('Bulk edit completed!');
+          // Optionally refresh the page or trigger a re-fetch
+          window.location.reload();
+        }}
+      />
+    </>
   );
 } 
