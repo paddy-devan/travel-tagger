@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth';
 import LoadingSpinner from '@/components/LoadingSpinner';
+import { PIN_CATEGORIES } from '@/lib/constants';
 
 interface Pin {
   id: string;
@@ -174,13 +175,18 @@ export default function BulkEditPinsModal({
                         />
                       </td>
                       <td className="px-3 py-2">
-                        <input
-                          type="text"
+                        <select
                           value={pin.category || ''}
                           onChange={(e) => updatePin(index, 'category', e.target.value || null)}
                           className="w-full px-2 py-1 text-sm text-gray-900 bg-white border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                          placeholder="Restaurant, Hotel..."
-                        />
+                        >
+                          <option value="">-- Select Category --</option>
+                          {PIN_CATEGORIES.map((category) => (
+                            <option key={category} value={category}>
+                              {category}
+                            </option>
+                          ))}
+                        </select>
                       </td>
                       <td className="px-3 py-2">
                         <textarea
