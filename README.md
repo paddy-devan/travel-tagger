@@ -10,6 +10,20 @@ Travel Tagger is a web application designed to organize and record trips by plac
 - **Multiple View Modes:** Map view and list view for different ways to manage your pins, with visualisations customised by pin attributes.
 - **Trip Reporting:** Use metadata and pin data from trips to create visually pleasing trip reports, presenting locations in formats such as a map and timeline.
 
+## Project Structure
+
+This project uses a simplified, beginner-friendly structure:
+
+```
+├── src/
+│   ├── app/                 # Next.js pages (direct URL mapping)
+│   ├── components/          # React components (flat structure)
+│   └── lib/                 # Utilities and contexts (flat structure)
+├── config/                  # Build tool configurations
+├── docs/                    # Documentation and database schema
+├── public/                  # Static assets
+└── package.json            # Dependencies and scripts
+```
 
 ## Tech Stack
 
@@ -32,7 +46,7 @@ Before you can run this application, you'll need to set up the following:
 
 2. **Supabase Account**
    - Create a new project
-   - Set up the database schema using the provided `supabase-schema.sql` file
+   - Set up the database schema using the provided `docs/supabase-schema.sql` file
 
 ## Getting Started
 
@@ -51,7 +65,7 @@ npm install
 
 3. **Set up environment variables**
 
-Create a `.env.local` file in the root directory based on the `.env.local.example` file.
+Create a `.env.local` file in the root directory based on the `docs/.env.local.example` file.
 
 4. **Run the development server**
 
