@@ -49,7 +49,7 @@ function SortableRow({
   row: any; 
   children: React.ReactNode;
 }) {
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useSortable({ 
+  const { setNodeRef, transform, isDragging } = useSortable({ 
     id: row.original.id 
   });
 
@@ -62,11 +62,30 @@ function SortableRow({
       ref={setNodeRef} 
       style={style}
       className={`hover:bg-gray-50 transition-colors ${isDragging ? 'opacity-50 bg-blue-50 shadow-lg' : ''}`}
-      {...attributes}
-      {...listeners}
     >
       {children}
     </tr>
+  );
+}
+
+// Drag handle component that receives the drag attributes
+function DragHandle({ row }: { row: any }) {
+  const { attributes, listeners } = useSortable({ 
+    id: row.original.id 
+  });
+
+  return (
+    <button
+      {...attributes}
+      {...listeners}
+      className="p-1 text-gray-400 hover:text-gray-600 cursor-grab active:cursor-grabbing transition-colors"
+      aria-label="Drag to reorder"
+      type="button"
+    >
+      <svg viewBox="0 0 20 20" width="16" fill="currentColor">
+        <path d="M7 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 2zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 14zm6-8a2 2 0 1 0-.001-4.001A2 2 0 0 0 13 6zm0 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 14z"></path>
+      </svg>
+    </button>
   );
 }
 
@@ -109,16 +128,7 @@ export default function BulkEditPinsModal({
       ),
       cell: ({ row }) => (
         <div className="flex justify-center">
-          <button
-            className="p-1 text-gray-400 hover:text-gray-600 cursor-grab active:cursor-grabbing transition-colors"
-            aria-label="Drag to reorder"
-            type="button"
-            // Note: drag attributes will be applied by SortableRow
-          >
-            <svg viewBox="0 0 20 20" width="16" fill="currentColor">
-              <path d="M7 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 2zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 14zm6-8a2 2 0 1 0-.001-4.001A2 2 0 0 0 13 6zm0 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 14z"></path>
-            </svg>
-          </button>
+          <DragHandle row={row} />
         </div>
       ),
       size: 50,
