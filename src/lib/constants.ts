@@ -1,30 +1,27 @@
-// Pin categories used throughout the app
-export const PIN_CATEGORIES = [
-  'Attraction',
-  'Restaurant', 
-  'Hotel',
-  'Museum',
-  'Bar',
-  'Park',
-  'Transportation',
-  'Shopping',
-  'Entertainment',
-  'Other'
-] as const;
+// Single source of truth for categories
+export const CATEGORIES = {
+  'Attraction': { color: '#EA4335' },
+  'Restaurant': { color: '#FF9800' },
+  'Hotel': { color: '#9C27B0' },
+  'Museum': { color: '#4285F4' },
+  'Bar': { color: '#FBBC05' },
+  'Park': { color: '#34A853' },
+  'Transportation': { color: '#E91E63' },
+  'Shopping': { color: '#00B0FF' },
+  'Entertainment': { color: '#FFEB3B' },
+  'Other': { color: '#757575' }
+} as const;
 
-// Category colors for map markers
-export const CATEGORY_COLORS: Record<string, string> = {
-  'Museum': '#4285F4',
-  'Attraction': '#EA4335',
-  'Hotel': '#9C27B0',
-  'Restaurant': '#FF9800',
-  'Bar': '#FBBC05',
-  'Park': '#34A853',
-  'Transportation': '#E91E63',
-  'Shopping': '#00B0FF',
-  'Entertainment': '#FFEB3B',
-  'Other': '#757575',
-  'default': '#757575'
+// Derived arrays and mappings (no duplication!)
+export const PIN_CATEGORIES = Object.keys(CATEGORIES) as (keyof typeof CATEGORIES)[];
+export const CATEGORY_COLORS = Object.fromEntries(
+  Object.entries(CATEGORIES).map(([name, { color }]) => [name, color])
+);
+
+// Helper function with fallback
+export const getCategoryColor = (category: string | null): string => {
+  if (!category || !(category in CATEGORIES)) return '#757575';
+  return CATEGORIES[category as keyof typeof CATEGORIES].color;
 };
 
-export type PinCategory = typeof PIN_CATEGORIES[number]; 
+export type PinCategory = keyof typeof CATEGORIES; 
