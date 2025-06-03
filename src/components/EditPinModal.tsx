@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { PIN_CATEGORIES } from '@/lib/constants';
 
 interface Pin {
   id: string;
@@ -81,14 +82,11 @@ export default function EditPinModal({ pin, onSave, onCancel }: EditPinModalProp
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="">-- Select Category --</option>
-              <option value="Attraction">Attraction</option>
-              <option value="Restaurant">Restaurant</option>
-              <option value="Hotel">Hotel</option>
-              <option value="Museum">Museum</option>
-              <option value="Park">Park</option>
-              <option value="Transportation">Transportation</option>
-              <option value="Shopping">Shopping</option>
-              <option value="Other">Other</option>
+              {PIN_CATEGORIES.map((category) => (
+                <option key={category} value={category}>
+                  {category}
+                </option>
+              ))}
             </select>
           </div>
           

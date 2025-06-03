@@ -8,6 +8,7 @@ import AddPinModal from '@/components/AddPinModal';
 import LocationSearch from '@/components/LocationSearch';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import { useTripContext } from '@/lib/TripContext';
+import { CATEGORY_COLORS, getCategoryColor } from '@/lib/constants';
 
 // Define map container style
 const containerStyle: React.CSSProperties = {
@@ -45,25 +46,6 @@ const createMarkerSVG = (color: string) => {
     anchor: new google.maps.Point(15, 40),
     labelOrigin: new google.maps.Point(18, 17)
   };
-};
-
-// Category colors
-const categoryColors: Record<string, string> = {
-  'Museum': '#4285F4',
-  'Attraction': '#EA4335',
-  'Hotel': '#9C27B0',
-  'Food': '#FF9800',
-  'Bar': '#FBBC05',
-  'Park': '#34A853',
-  'Transportation': '#E91E63',
-  'Shopping': '#00B0FF',
-  'Entertainment': '#FFEB3B',
-  'default': '#757575'
-};
-
-const getMarkerIcon = (category: string | null) => {
-  if (!category) return createMarkerSVG(categoryColors['default']);
-  return createMarkerSVG(categoryColors[category] || categoryColors['default']);
 };
 
 interface Pin {
@@ -310,6 +292,10 @@ export default function TripMap({
       east: 180,
     },
     strictBounds: false,
+  };
+
+  const getMarkerIcon = (category: string | null) => {
+    return createMarkerSVG(getCategoryColor(category));
   };
 
   if (!isLoaded) {
