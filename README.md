@@ -80,10 +80,12 @@ Navigate to [http://localhost:3000](http://localhost:3000) to see the applicatio
 ## Current Progress
 
 - Sign up and login with local application account or Google OAuth
-- Dashboard (trips) page, where users can add new trips to their account with an optional start and end date
+- Dashboard (my trips) page, where users can add new trips to their account with an optional start and end date
+- Trip page, where user can place pins on map, and add attributes to them.
+- Bulk pin edit interface, for editting pins in a data grid.
 
 ## Next 3 features
 
-1. Add pins to trip
-2. Google Maps visual interface for viewing pins on map
-3. Front-end design review
+1. Add other users to trip as editor with share link.
+2. Map view parameters, such as ability to adjust legend field.
+3. Optimisation review.

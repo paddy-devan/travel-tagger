@@ -9,6 +9,7 @@ export const CATEGORIES = {
   'Transportation': { color: '#E91E63' },
   'Shopping': { color: '#00B0FF' },
   'Entertainment': { color: '#FFEB3B' },
+  'The Moon': { color: '#FFEB3B' },
   'Other': { color: '#757575' }
 } as const;
 
