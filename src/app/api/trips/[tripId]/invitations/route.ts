@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@supabase/supabase-js';
 
 export async function POST(
   request: NextRequest,
@@ -14,6 +14,18 @@ export async function POST(
 
     const token = authHeader.substring(7); // Remove "Bearer " prefix
     
+    // Create a server-side Supabase client with the user's access token
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+    
+    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+      global: {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      },
+    });
+    
     // Verify the token with Supabase
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     
@@ -23,6 +35,15 @@ export async function POST(
 
     const { tripId } = await context.params;
     const userId = user.id;
+
+    // First, test basic trip access
+    const { data: basicTrip, error: basicError } = await supabase
+      .from('trips')
+      .select('id, user_id, name')
+      .eq('id', tripId)
+      .single();
+
+    console.log('Basic trip query result:', { basicTrip, basicError });
 
     // Verify user has permission to share this trip (must be owner or existing collaborator)
     const { data: tripAccess, error: tripError } = await supabase
@@ -37,7 +58,15 @@ export async function POST(
       .single();
 
     if (tripError) {
-      return NextResponse.json({ error: 'Trip not found' }, { status: 404 });
+      console.error('Trip query error:', tripError);
+      console.error('Trip ID:', tripId);
+      console.error('User ID:', userId);
+      return NextResponse.json({ 
+        error: 'Trip not found', 
+        details: tripError.message,
+        tripId: tripId,
+        userId: userId 
+      }, { status: 404 });
     }
 
     // Check if user is owner or collaborator
