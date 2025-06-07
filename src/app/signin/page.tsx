@@ -82,16 +82,20 @@ export default function SignIn() {
     setError(null);
 
     try {
+      // Determine the correct redirect URL based on current domain
+      const isVercelDeployment = window.location.hostname.includes('vercel.app');
+      const redirectUrl = isVercelDeployment 
+        ? 'https://travel-tagger.vercel.app/dashboard'
+        : 'http://localhost:3000/dashboard';
+
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/dashboard`,
+          redirectTo: redirectUrl,
         },
       });
 
       if (error) throw error;
-      // For Google Sign-in, the user creation in application DB
-      // will need to happen after redirect when we have the user info
     } catch (error: unknown) {
       const err = error as { message?: string };
       setError(err.message || 'An error occurred during Google sign in');
