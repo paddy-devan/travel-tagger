@@ -18,6 +18,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  const ensureUserInDatabase = async (userId: string, userEmail: string) => {
+    try {
+      const { error: checkError } = await supabase
+        .from('users')
+        .select('id')
+        .eq('id', userId)
+        .single();
+      
+      if (checkError && checkError.code === 'PGRST116') {
+        const { error: insertError } = await supabase
+          .from('users')
+          .insert({
+            id: userId,
+            email: userEmail,
+            name: userEmail.split('@')[0],
+            avatar_url: null,
+          });
+        
+        if (insertError) {
+          console.error('Error creating user in database:', insertError);
+        }
+      }
+    } catch (err) {
+      console.error('Exception checking/creating user in database:', err);
+    }
+  };
+
   useEffect(() => {
     // Get initial session
     const getInitialSession = async () => {
@@ -36,10 +63,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event: AuthChangeEvent, session) => {
+      async (event: AuthChangeEvent, session) => {
         setSession(session);
         setUser(session?.user ?? null);
         setIsLoading(false);
+
+        // Handle user creation for ALL auth methods
+        if (event === 'SIGNED_IN' && session?.user) {
+          await ensureUserInDatabase(session.user.id, session.user.email || '');
+        }
       }
     );
 
