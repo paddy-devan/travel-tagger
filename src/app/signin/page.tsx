@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import { getRedirectUrl } from '@/lib/utils';
 
 export default function SignIn() {
   const router = useRouter();
@@ -12,66 +13,22 @@ export default function SignIn() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const ensureUserInDatabase = async (userId: string, userEmail: string) => {
-    try {
-      // Check if user exists in database
-      const { error: checkError } = await supabase
-        .from('users')
-        .select('id')
-        .eq('id', userId)
-        .single();
-      
-      // If user doesn't exist, create them
-      if (checkError && checkError.code === 'PGRST116') {
-        const { error: insertError } = await supabase
-          .from('users')
-          .insert({
-            id: userId,
-            email: userEmail,
-            name: userEmail.split('@')[0],
-            avatar_url: null,
-          });
-        
-        if (insertError) {
-          console.error('Error creating user in database:', insertError);
-          return false;
-        }
-        return true;
-      }
-      
-      return !checkError;
-    } catch (err) {
-      console.error('Exception checking/creating user in database:', err);
-      return false;
-    }
-  };
-
   const handleEmailSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (error) throw error;
-      
-      // If login succeeded, make sure they have a record in the application database
-      if (data?.user) {
-        const userInDbSuccess = await ensureUserInDatabase(data.user.id, data.user.email || email);
-        if (!userInDbSuccess) {
-          console.warn('User authenticated but not added to application database');
-          // We'll still redirect them, but they may encounter errors later
-        }
-      }
-      
-      router.push('/dashboard');
+      router.push('/dashboard'); // AuthProvider handles user creation
     } catch (error: unknown) {
       const err = error as { message?: string };
-      setError(err.message || 'An error occurred during sign in');
+      setError(err.message || 'Sign in failed');
     } finally {
       setLoading(false);
     }
@@ -85,16 +42,14 @@ export default function SignIn() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/dashboard`,
+          redirectTo: getRedirectUrl('/dashboard'),
         },
       });
 
       if (error) throw error;
-      // For Google Sign-in, the user creation in application DB
-      // will need to happen after redirect when we have the user info
     } catch (error: unknown) {
       const err = error as { message?: string };
-      setError(err.message || 'An error occurred during Google sign in');
+      setError(err.message || 'Google sign in failed');
       setLoading(false);
     }
   };

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import { getRedirectUrl } from '../../lib/utils';
 
 export default function SignUp() {
   const router = useRouter();
@@ -12,27 +13,6 @@ export default function SignUp() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const createUserInDatabase = async (userId: string, userEmail: string) => {
-    try {
-      // Create the user record in our application database
-      const { error } = await supabase
-        .from('users')
-        .insert({
-          id: userId,
-          email: userEmail,
-          name: userEmail.split('@')[0], // Simple default name based on email
-          avatar_url: null,
-        });
-
-      if (error) {
-        console.error('Error creating user in database:', error);
-        // We'll still proceed with signup even if this fails
-      }
-    } catch (err) {
-      console.error('Exception creating user in database:', err);
-    }
-  };
 
   const handleEmailSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,22 +31,17 @@ export default function SignUp() {
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/dashboard`,
+          emailRedirectTo: getRedirectUrl('/dashboard'),
         },
       });
 
       if (error) throw error;
       
-      // If we have a user, try to create the user record in our database
-      if (data.user) {
-        await createUserInDatabase(data.user.id, email);
-      }
-      
       // Show success message or redirect
       router.push('/signup/confirmation');
     } catch (error: unknown) {
       const err = error as { message?: string };
-      setError(err.message || 'An error occurred during sign up');
+      setError(err.message || 'Sign up failed');
     } finally {
       setLoading(false);
     }
@@ -80,17 +55,14 @@ export default function SignUp() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/dashboard`,
+          redirectTo: getRedirectUrl('/dashboard'),
         },
       });
 
       if (error) throw error;
-      
-      // For OAuth providers, we can't create the database user here
-      // It will need to be handled after the OAuth redirect
     } catch (error: unknown) {
       const err = error as { message?: string };
-      setError(err.message || 'An error occurred during Google sign up');
+      setError(err.message || 'Google sign up failed');
       setLoading(false);
     }
   };
