@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { UserService } from '@/lib/userService';
 
 export async function POST(
   request: Request,
@@ -37,38 +38,33 @@ export async function POST(
     }
 
     // Ensure user exists in database (for new signups)
-    const { data: existingUser } = await supabase
-      .from('users')
-      .select('id')
-      .eq('id', userId)
-      .single();
+    // Get user details from auth using service role (required for user lookup)
+    const { data: authUser, error: authError } = await supabase.auth.admin.getUserById(userId);
+    
+    if (authError || !authUser.user) {
+      return NextResponse.json(
+        { error: 'User not found' },
+        { status: 404 }
+      );
+    }
 
-    if (!existingUser) {
-      // Get user details from auth to create user record
-      const { data: authUser, error: authError } = await supabase.auth.admin.getUserById(userId);
-      
-      if (authError || !authUser.user) {
-        return NextResponse.json(
-          { error: 'User not found' },
-          { status: 404 }
-        );
-      }
+    // Use centralized user service to ensure user exists
+    const userService = UserService.withServiceRole(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+    
+    const userResult = await userService.ensureUserExists({
+      id: userId,
+      email: authUser.user.email || '',
+    });
 
-      // Create user record
-      const { error: userError } = await supabase
-        .from('users')
-        .insert({
-          id: userId,
-          email: authUser.user.email,
-        });
-
-      if (userError && userError.code !== '23505') {
-        console.error('Error creating user record:', userError);
-        return NextResponse.json(
-          { error: `Failed to create user record: ${userError.message}` },
-          { status: 500 }
-        );
-      }
+    if (!userResult.success) {
+      console.error('Failed to ensure user exists:', userResult.error);
+      return NextResponse.json(
+        { error: 'Failed to create user record' },
+        { status: 500 }
+      );
     }
 
     // Check if user is already a collaborator

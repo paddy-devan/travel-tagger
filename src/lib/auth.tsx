@@ -1,8 +1,9 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState } from 'react';
-import { Session, User, AuthChangeEvent } from '@supabase/supabase-js';
+import { createContext, useContext, useEffect, useState, useRef } from 'react';
+import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
+import { UserService } from '@/lib/userService';
 
 type AuthContextType = {
   user: User | null;
@@ -17,60 +18,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const hasFiredInitialEvent = useRef(false);
 
   const ensureUserInDatabase = async (userId: string, userEmail: string) => {
-    try {
-      const { error: checkError } = await supabase
-        .from('users')
-        .select('id')
-        .eq('id', userId)
-        .single();
-      
-      if (checkError && checkError.code === 'PGRST116') {
-        const { error: insertError } = await supabase
-          .from('users')
-          .insert({
-            id: userId,
-            email: userEmail,
-            name: userEmail.split('@')[0],
-            avatar_url: null,
-          });
-        
-        if (insertError) {
-          console.error('Error creating user in database:', insertError);
-        }
-      }
-    } catch (err) {
-      console.error('Exception checking/creating user in database:', err);
+    const userService = UserService.withClient(supabase);
+    const result = await userService.ensureUserExists({ id: userId, email: userEmail });
+    if (!result.success) {
+      console.error('Failed to ensure user exists in DB:', result.error);
     }
   };
 
   useEffect(() => {
-    // Get initial session
-    const getInitialSession = async () => {
-      try {
-        const { data } = await supabase.auth.getSession();
-        setSession(data.session);
-        setUser(data.session?.user ?? null);
-      } catch (error) {
-        console.error('Error getting initial session:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    getInitialSession();
-
-    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event: AuthChangeEvent, session) => {
+      (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
-        setIsLoading(false);
 
-        // Handle user creation for ALL auth methods
+        // This is the key: only set isLoading to false ONCE.
+        // The first event (e.g., INITIAL_SESSION_FETCHED or SIGNED_IN) will turn it off.
+        // Subsequent events (like USER_UPDATED or TOKEN_REFRESHED) will not.
+        if (!hasFiredInitialEvent.current) {
+          setIsLoading(false);
+          hasFiredInitialEvent.current = true;
+        }
+
         if (event === 'SIGNED_IN' && session?.user) {
-          await ensureUserInDatabase(session.user.id, session.user.email || '');
+          ensureUserInDatabase(session.user.id, session.user.email || '');
         }
       }
     );
@@ -104,4 +77,4 @@ export function useAuth() {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
-} 
+}

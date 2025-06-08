@@ -1,7 +1,15 @@
 export const getRedirectUrl = (path: string = '/dashboard') => {
-  if (typeof window === 'undefined') return `http://localhost:3000${path}`;
+  // Server-side fallback
+  if (typeof window === 'undefined') {
+    return process.env.NEXT_PUBLIC_SITE_URL 
+      ? `${process.env.NEXT_PUBLIC_SITE_URL}${path}`
+      : `http://localhost:3000${path}`;
+  }
   
-  const isVercelDeployment = window.location.hostname.includes('vercel.app');
+  // Client-side: detect environment
+  const isVercelDeployment = window.location.hostname.includes('vercel.app') || 
+                            window.location.hostname === 'travel-tagger.vercel.app';
+  
   return isVercelDeployment 
     ? `https://travel-tagger.vercel.app${path}`
     : `http://localhost:3000${path}`;
