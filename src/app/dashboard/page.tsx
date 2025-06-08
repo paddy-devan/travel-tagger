@@ -82,7 +82,15 @@ export default function DashboardPageContent() {
   };
 
   // Loading state specific to fetching trips (after auth)
-  if (loading && !authLoading) { // Show loading only if auth is done but trips aren't
+  if (authLoading) {
+    return (
+      <div className="p-4 flex justify-center items-center h-full">
+        <LoadingSpinner />
+      </div>
+    );
+  }
+
+  if (loading && user) { // Show loading only if auth is done but trips aren't loaded
       return (
          <div className="p-4 flex justify-center items-center h-full">
            <LoadingSpinner />
