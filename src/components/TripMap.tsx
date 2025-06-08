@@ -65,6 +65,8 @@ interface TripMapProps {
   tripId?: string;
   refreshTrigger?: number;
   showControls?: boolean;
+  allowUnauthenticated?: boolean;
+  initialPins?: Pin[];
 }
 
 interface TemporarySelectedPlace {
@@ -82,6 +84,8 @@ export default function TripMap({
   tripId,
   refreshTrigger = 0,
   showControls = true,
+  allowUnauthenticated = false,
+  initialPins,
 }: TripMapProps) {
   const { user } = useAuth();
   const { triggerPinListRefresh } = useTripContext();
@@ -108,7 +112,19 @@ export default function TripMap({
 
   // Fetch pins for the trip
   const fetchPins = useCallback(async () => {
-    if (!user || !tripId) {
+    // If initial pins are provided, use them instead of fetching
+    if (initialPins) {
+      setPins(initialPins);
+      return;
+    }
+
+    if (!tripId) {
+        setPins([]);
+        return;
+    }
+
+    // Check if we need authentication
+    if (!allowUnauthenticated && !user) {
         setPins([]);
         return;
     }
@@ -126,7 +142,7 @@ export default function TripMap({
       console.error('Error fetching pins:', error);
       setPins([]);
     }
-  }, [tripId, user]);
+  }, [tripId, user, allowUnauthenticated, initialPins]);
 
   useEffect(() => {
     if (isLoaded) {
@@ -171,7 +187,7 @@ export default function TripMap({
 
   // Handle map click
   const onMapClick = useCallback((event: MapMouseEventWithPlaceId) => {
-    if (!event.latLng || !tripId) return;
+    if (!event.latLng || !tripId || !user) return;
 
     const location = {
       lat: event.latLng.lat(),
@@ -182,7 +198,7 @@ export default function TripMap({
     setPlaceInfo(null);
     setTemporarySelectedPlace(null);
     setShowAddPinModal(true);
-  }, [tripId]);
+  }, [tripId, user]);
 
   // Handle adding a pin
   const handleAddPin = async (nickname: string, notes: string | null, category: string | null) => {

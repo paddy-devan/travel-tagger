@@ -31,26 +31,52 @@ export default function DashboardPageContent() {
   const [error, setError] = useState<string | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
 
-  // Fetch Trips (logic remains the same)
+  // Fetch Trips (including both owned and collaborative trips)
   const fetchTrips = useCallback(async () => {
     if (!user) return;
-    setLoading(true); // Set loading true when fetching starts
+    setLoading(true);
     setError(null);
     try {
-      const { data, error: dbError } = await supabase
+      // Get owned trips
+      const { data: ownedTrips, error: ownedError } = await supabase
         .from('trips')
         .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
-      if (dbError) throw dbError;
-      setTrips(data || []);
+        .eq('user_id', user.id);
+      
+      if (ownedError) throw ownedError;
+
+      // Get collaborative trips
+      const { data: collaborativeTrips, error: collaborativeError } = await supabase
+        .from('trips')
+        .select(`
+          *,
+          trip_collaborators!inner(
+            user_id,
+            role
+          )
+        `)
+        .eq('trip_collaborators.user_id', user.id);
+      
+      if (collaborativeError) throw collaborativeError;
+
+      // Combine and deduplicate trips
+      const allTrips = [...(ownedTrips || []), ...(collaborativeTrips || [])];
+      const uniqueTrips = allTrips.filter((trip, index, self) => 
+        index === self.findIndex(t => t.id === trip.id)
+      );
+
+      // Sort by created_at descending
+      uniqueTrips.sort((a, b) => 
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+
+      setTrips(uniqueTrips);
     } catch (err: unknown) {
-      // ... error handling ...
-       const fetchError = err as { message?: string };
-       const errorMessage = fetchError.message || 'Failed to load trips';
-       setError(errorMessage);
-       console.error('Error fetching trips:', err);
-       setTrips([]);
+      const fetchError = err as { message?: string };
+      const errorMessage = fetchError.message || 'Failed to load trips';
+      setError(errorMessage);
+      console.error('Error fetching trips:', err);
+      setTrips([]);
     } finally {
       setLoading(false);
     }

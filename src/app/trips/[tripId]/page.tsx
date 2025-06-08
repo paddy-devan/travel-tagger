@@ -32,18 +32,49 @@ export default function TripDetailPageContent() {
       setLoading(true);
       setError(null);
       try {
-        const { data, error: tripError } = await supabase
+        console.log('Checking trip access for user:', user.id, 'trip:', tripId);
+        
+        // Check if user owns the trip
+        const { data: ownedTrip } = await supabase
           .from('trips')
           .select('*')
           .eq('id', tripId)
           .eq('user_id', user.id)
           .single();
 
-        if (tripError) throw tripError;
-        if (!data) {
+        if (ownedTrip) {
+          console.log('User owns the trip');
+          setTrip(ownedTrip);
+          return;
+        }
+
+        // Check if user is a collaborator
+        const { data: collaboration } = await supabase
+          .from('trip_collaborators')
+          .select('trip_id')
+          .eq('trip_id', tripId)
+          .eq('user_id', user.id)
+          .single();
+
+        console.log('Collaboration check:', collaboration);
+
+        if (!collaboration) {
           throw new Error('Trip not found or you do not have access to this trip.');
         }
-        setTrip(data);
+
+        // User is a collaborator, get trip details
+        const { data: collaborativeTrip, error: tripError } = await supabase
+          .from('trips')
+          .select('*')
+          .eq('id', tripId)
+          .single();
+
+        if (tripError || !collaborativeTrip) {
+          throw new Error('Trip not found.');
+        }
+
+        console.log('User is collaborator, got trip:', collaborativeTrip.name);
+        setTrip(collaborativeTrip);
 
       } catch (error: unknown) {
         const err = error as { message?: string };
